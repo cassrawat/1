@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Income Tax Calculator FY 2025-26</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          animation: {
+            fade: "fadeIn 1s ease-in-out",
+          },
+          keyframes: {
+            fadeIn: {
+              "0%": { opacity: 0 },
+              "100%": { opacity: 1 },
+            },
+          },
+        },
+      },
+    };
+  </script>
+</head>
+
+<body class="bg-gradient-to-br from-cyan-100 via-white to-emerald-100 text-gray-800">
+
+  <div class="max-w-screen-lg mx-auto px-4 py-6 space-y-6 animate-fade">
+    <div class="bg-white shadow-xl rounded-xl p-4 sm:p-6 space-y-4">
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-blue-800 text-center">💰 Income Tax Calculator</h1>
+      <p class="text-center text-sm sm:text-base text-gray-600">Financial Year 2025–26 · New & Old Regimes</p>
+
+      <!-- Input -->
+      <div class="space-y-3">
+        <label class="block text-base sm:text-lg font-medium">
+          Your Annual Salary or Income (₹):
+          <input type="number" id="income" placeholder="e.g. 850000"
+            class="mt-2 w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 text-sm sm:text-base" />
+        </label>
+
+        <button onclick="calculateTax()"
+          class="w-full bg-gradient-to-r from-blue-600 to-green-600 text-white text-base sm:text-lg py-2 rounded-md shadow hover:scale-105 transition-transform">
+          🔍 Calculate Tax under Both Regimes
+        </button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- New Regime -->
+      <div class="bg-blue-50 p-4 rounded-xl shadow-md">
+        <h2 class="text-xl font-bold text-blue-800 mb-2">🆕 New Tax Regime</h2>
+        <div id="newBreakup" class="text-sm text-gray-700 leading-relaxed"></div>
+        <div id="newResult" class="text-base sm:text-lg font-semibold text-blue-900 mt-2"></div>
+      </div>
+
+      <!-- Old Regime -->
+      <div class="bg-green-50 p-4 rounded-xl shadow-md">
+        <h2 class="text-xl font-bold text-green-800 mb-2">📜 Old Tax Regime</h2>
+        <div id="oldBreakup" class="text-sm text-gray-700 leading-relaxed"></div>
+        <div id="oldResult" class="text-base sm:text-lg font-semibold text-green-900 mt-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function formatINR(n) {
+      return n.toLocaleString("en-IN");
+    }
+
+    function calculateTax() {
+      const income = parseFloat(document.getElementById("income").value);
+      if (isNaN(income) || income < 0) {
+        document.getElementById("newResult").innerText = "⚠️ Please enter a valid salary.";
+        document.getElementById("oldResult").innerText = "";
+        return;
+      }
+
+      // --- NEW REGIME ---
+      let newTax = 0;
+      let newBreakup = "";
+      const newSlabs = [
+        { limit: 400000, rate: 0 },
+        { limit: 800000, rate: 0.05 },
+        { limit: 1200000, rate: 0.10 },
+        { limit: 1600000, rate: 0.15 },
+        { limit: 2000000, rate: 0.20 },
+        { limit: 2400000, rate: 0.25 },
+        { limit: Infinity, rate: 0.30 }
+      ];
+      let prev = 0;
+      for (let slab of newSlabs) {
+        if (income > slab.limit) {
+          const slabTax = (slab.limit - prev) * slab.rate;
+          newTax += slabTax;
+          newBreakup += `🧾 ₹${formatINR(prev + 1)} - ₹${formatINR(slab.limit)} @ ${slab.rate * 100}% → ₹${formatINR(slabTax)}<br>`;
+          prev = slab.limit;
+        } else {
+          const slabTax = (income - prev) * slab.rate;
+          newTax += slabTax;
+          newBreakup += `🧾 ₹${formatINR(prev + 1)} - ₹${formatINR(income)} @ ${slab.rate * 100}% → ₹${formatINR(slabTax)}<br>`;
+          break;
+        }
+      }
+
+      let rebateNote = "";
+      if (income <= 1200000) {
+        newTax = Math.max(0, newTax - 60000);
+        rebateNote = `<br>✅ ₹60,000 rebate under Section 87A applied.`;
+      } else if (income <= 1275000) {
+        const excessIncome = income - 1200000;
+        if (newTax > excessIncome) {
+          newTax = excessIncome;
+          rebateNote = `<br>📉 Marginal Relief applied: Tax capped to ₹${formatINR(excessIncome)}.`;
+        }
+      }
+
+      // --- OLD REGIME ---
+      let oldTax = 0;
+      let oldBreakup = "";
+      const oldSlabs = [
+        { limit: 250000, rate: 0 },
+        { limit: 500000, rate: 0.05 },
+        { limit: 1000000, rate: 0.20 },
+        { limit: Infinity, rate: 0.30 }
+      ];
+      prev = 0;
+      for (let slab of oldSlabs) {
+        if (income > slab.limit) {
+          const slabTax = (slab.limit - prev) * slab.rate;
+          oldTax += slabTax;
+          oldBreakup += `🧾 ₹${formatINR(prev + 1)} - ₹${formatINR(slab.limit)} @ ${slab.rate * 100}% → ₹${formatINR(slabTax)}<br>`;
+          prev = slab.limit;
+        } else {
+          const slabTax = (income - prev) * slab.rate;
+          oldTax += slabTax;
+          oldBreakup += `🧾 ₹${formatINR(prev + 1)} - ₹${formatINR(income)} @ ${slab.rate * 100}% → ₹${formatINR(slabTax)}<br>`;
+          break;
+        }
+      }
+
+      if (income <= 500000) {
+        oldTax = 0;
+        oldBreakup += `<br>✅ Section 87A rebate applied: No tax.`;
+      }
+
+      // Output
+      document.getElementById("newBreakup").innerHTML = newBreakup + rebateNote;
+      document.getElementById("newResult").innerHTML = `💸 Total Tax Payable: ₹${formatINR(newTax)}`;
+      document.getElementById("oldBreakup").innerHTML = oldBreakup;
+      document.getElementById("oldResult").innerHTML = `💸 Total Tax Payable: ₹${formatINR(oldTax)}`;
+    }
+  </script>
+</body>
+</html>
